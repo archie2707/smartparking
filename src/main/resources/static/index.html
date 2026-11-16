@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ParkSmart EV | Smart Parking & Charging Control Center</title>
+    <style>
+        :root {
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --navy: #0f172a;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --green: #10b981;
+            --green-bg: #ecfdf5;
+            --red: #ef4444;
+            --red-bg: #fef2f2;
+            --blue: #0ea5e9;
+            --blue-bg: #f0f9ff;
+            --indigo: #4f46e5;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        body { background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        /* Header */
+        header {
+            background: var(--navy);
+            color: white;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+        .brand h1 { font-size: 1.35rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .brand p { font-size: 0.85rem; color: #94a3b8; margin-top: 2px; }
+        .header-actions { display: flex; gap: 10px; align-items: center; }
+
+        .btn {
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.92; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: var(--indigo); color: white; width: 100%; padding: 12px; font-size: 0.95rem; }
+        .btn-success { background: var(--green); color: white; width: 100%; padding: 12px; font-size: 0.95rem; }
+        .btn-amber { background: #f59e0b; color: #111827; }
+        .btn-outline { background: rgba(255,255,255,0.12); color: white; }
+        .btn-sm { padding: 5px 10px; font-size: 0.78rem; border-radius: 6px; background: var(--indigo); color: white; }
+
+        .container { max-width: 1320px; margin: 24px auto; padding: 0 20px; }
+
+        /* KPI Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--card);
+            padding: 18px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .stat-label { font-size: 0.82rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+        .stat-value { font-size: 1.9rem; font-weight: 700; margin-top: 6px; }
+        .text-green { color: var(--green); }
+        .text-blue { color: var(--blue); }
+        .text-indigo { color: var(--indigo); }
+
+        /* Main Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 370px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+        @media (max-width: 960px) { .main-grid { grid-template-columns: 1fr; } }
+
+        .panel {
+            background: var(--card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+            margin-bottom: 20px;
+        }
+        .panel h2 { font-size: 1.08rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+        .form-group { margin-bottom: 13px; }
+        .form-group label { display: block; font-size: 0.83rem; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 0.92rem;
+            outline: none;
+        }
+        .form-group input:focus, .form-group select:focus { border-color: var(--indigo); }
+
+        /* Toast / Alert Banner */
+        .alert {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            font-size: 0.9rem;
+            display: none;
+            line-height: 1.45;
+        }
+        .alert.show { display: block; }
+        .alert-success { background: var(--green-bg); border: 1px solid #a7f3d0; color: #065f46; }
+        .alert-error { background: var(--red-bg); border: 1px solid #fecaca; color: #991b1b; }
+        .alert-info { background: var(--blue-bg); border: 1px solid #bae6fd; color: #075985; }
+
+        /* Visual Slot Map */
+        .floor-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--muted);
+            margin: 14px 0 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .slots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+            gap: 12px;
+        }
+        .slot-card {
+            border-radius: 10px;
+            padding: 14px;
+            border: 2px solid;
+            transition: transform 0.15s;
+        }
+        .slot-card:hover { transform: translateY(-2px); }
+        .slot-free { background: var(--green-bg); border-color: #6ee7b7; }
+        .slot-occupied { background: var(--red-bg); border-color: #fca5a5; }
+
+        .slot-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .slot-id { font-weight: 800; font-size: 1rem; }
+        .badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 3px 7px;
+            border-radius: 999px;
+            text-transform: uppercase;
+        }
+        .badge-free { background: var(--green); color: white; }
+        .badge-occ { background: var(--red); color: white; }
+        .badge-ev { background: var(--blue); color: white; }
+        .badge-type { background: #e2e8f0; color: #334155; }
+
+        .slot-meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; }
+        .slot-vehicle {
+            background: rgba(255,255,255,0.85);
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Active Tickets Table */
+        table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+        th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+        th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; }
+        .empty-msg { color: var(--muted); font-size: 0.88rem; padding: 12px 0; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand">
+        <h1>🚗⚡ ParkSmart EV</h1>
+        <p>Smart Parking & EV Charging Allocation System (Min-Heap + Strategy Pattern)</p>
+    </div>
+    <div class="header-actions">
+        <button class="btn btn-amber" onclick="runConcurrencyDemo()">⚡ Simulate Concurrent Entry</button>
+        <button class="btn btn-outline" onclick="loadDashboard()">↻ Refresh</button>
+    </div>
+</header>
+
+<div class="container">
+    <div id="alertBox" class="alert"></div>
+
+    <!-- KPI Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Slots</div>
+            <div class="stat-value" id="totalSlots">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Available Slots</div>
+            <div class="stat-value text-green" id="availableSlots">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">EV Chargers Free</div>
+            <div class="stat-value text-blue" id="evAvailable">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-value text-indigo" id="totalRevenue">₹0.00</div>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <!-- Left Column: Forms -->
+        <div>
+            <div class="panel">
+                <h2>🅿️ Vehicle Check-In</h2>
+                <form id="parkForm" onsubmit="parkVehicle(event)">
+                    <div class="form-group">
+                        <label>Vehicle Type</label>
+                        <select id="vehicleType" onchange="toggleBatteryField()">
+                            <option value="CAR">Car (Standard Slot - ₹40/hr)</option>
+                            <option value="BIKE">Bike (Compact Slot - ₹20/hr)</option>
+                            <option value="EV_CAR">EV Car (EV Charger - ₹40/hr + Charging)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="batteryGroup" style="display: none;">
+                        <label>EV Battery Capacity (kWh)</label>
+                        <input type="number" id="batteryCapacity" value="40" min="5" max="150" step="1" />
+                    </div>
+                    <div class="form-group">
+                        <label>License Plate</label>
+                        <input type="text" id="licensePlate" placeholder="e.g., KA-01-AB-1234" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Owner Name</label>
+                        <input type="text" id="ownerName" placeholder="e.g., Aarav Sharma" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Assign Nearest Slot</button>
+                </form>
+            </div>
+
+            <div class="panel">
+                <h2>🧾 Checkout & Billing</h2>
+                <form id="exitForm" onsubmit="exitVehicle(event)">
+                    <div class="form-group">
+                        <label>Ticket ID</label>
+                        <input type="text" id="ticketId" placeholder="e.g., TKT-101" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Simulate Hours Parked (0 = real-time min 1 hr)</label>
+                        <input type="number" id="simulatedHours" value="2" min="0" max="72" />
+                    </div>
+                    <button type="submit" class="btn btn-success">Checkout & Pay Bill</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Column: Live Map & Active Tickets -->
+        <div>
+            <div class="panel">
+                <h2>🗺️ Live Parking Lot Map (Sorted by Floor)</h2>
+                <div id="slotsContainer">Loading slots...</div>
+            </div>
+
+            <div class="panel">
+                <h2>🎟️ Active Parked Vehicles</h2>
+                <div id="ticketsContainer"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleBatteryField() {
+        const type = document.getElementById('vehicleType').value;
+        document.getElementById('batteryGroup').style.display = (type === 'EV_CAR') ? 'block' : 'none';
+    }
+
+    function showAlert(message, type = 'info') {
+        const box = document.getElementById('alertBox');
+        box.className = `alert show alert-${type}`;
+        box.innerHTML = message;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function loadDashboard() {
+        try {
+            const res = await fetch('/api/parking/dashboard');
+            const data = await res.json();
+
+            document.getElementById('totalSlots').innerText = data.totalSlots;
+            document.getElementById('availableSlots').innerText = data.availableSlots;
+            document.getElementById('evAvailable').innerText = data.evAvailable;
+            document.getElementById('totalRevenue').innerText = `₹${data.totalRevenue.toFixed(2)}`;
+
+            renderSlots(data.slots, data.activeTickets);
+            renderTickets(data.activeTickets);
+        } catch (err) {
+            showAlert('Failed to connect to Spring Boot backend.', 'error');
+        }
+    }
+
+    function renderSlots(slots, activeTickets) {
+        const ticketBySlot = {};
+        activeTickets.forEach(t => { ticketBySlot[t.slot.slotId] = t.ticketId; });
+
+        const floors = {};
+        slots.forEach(slot => {
+            if (!floors[slot.floor]) floors[slot.floor] = [];
+            floors[slot.floor].push(slot);
+        });
+
+        let html = '';
+        Object.keys(floors).sort().forEach(floor => {
+            html += `<div class="floor-title">Floor ${floor}</div><div class="slots-grid">`;
+            floors[floor].forEach(slot => {
+                const isOccupied = slot.occupied;
+                const typeBadge = slot.slotType === 'EV_CHARGING'
+                    ? `<span class="badge badge-ev">⚡ EV</span>`
+                    : `<span class="badge badge-type">${slot.slotType}</span>`;
+                const statusBadge = isOccupied
+                    ? `<span class="badge badge-occ">Occupied</span>`
+                    : `<span class="badge badge-free">Free</span>`;
+
+                let vehicleInfo = `<div class="slot-meta">📍 ${slot.distanceFromGate}m from entry gate</div>`;
+                if (isOccupied && slot.parkedVehicle) {
+                    const tId = ticketBySlot[slot.slotId] || '';
+                    vehicleInfo += `
+                        <div class="slot-vehicle">
+                            <div>${slot.parkedVehicle.licensePlate}</div>
+                            <div style="color:#64748b; font-weight:400;">${slot.parkedVehicle.ownerName} • ${tId}</div>
+                        </div>`;
+                }
+
+                html += `
+                    <div class="slot-card ${isOccupied ? 'slot-occupied' : 'slot-free'}">
+                        <div class="slot-top">
+                            <span class="slot-id">${slot.slotId}</span>
+                            ${statusBadge}
+                        </div>
+                        <div style="margin-bottom:8px;">${typeBadge}</div>
+                        ${vehicleInfo}
+                    </div>`;
+            });
+            html += `</div>`;
+        });
+        document.getElementById('slotsContainer').innerHTML = html;
+    }
+
+    function renderTickets(tickets) {
+        if (!tickets || tickets.length === 0) {
+            document.getElementById('ticketsContainer').innerHTML = '<div class="empty-msg">No vehicles currently parked.</div>';
+            return;
+        }
+
+        let html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ticket ID</th>
+                        <th>Vehicle</th>
+                        <th>Owner</th>
+                        <th>Slot</th>
+                        <th>Entry Time</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+        tickets.forEach(t => {
+            html += `
+                <tr>
+                    <td><strong>${t.ticketId}</strong></td>
+                    <td>${t.vehicle.licensePlate} (${t.vehicle.vehicleType})</td>
+                    <td>${t.vehicle.ownerName}</td>
+                    <td>${t.slot.slotId}</td>
+                    <td>${t.formattedEntryTime}</td>
+                    <td><button class="btn btn-sm" onclick="selectTicket('${t.ticketId}')">Checkout</button></td>
+                </tr>`;
+        });
+        html += `</tbody></table>`;
+        document.getElementById('ticketsContainer').innerHTML = html;
+    }
+
+    function selectTicket(ticketId) {
+        document.getElementById('ticketId').value = ticketId;
+        document.getElementById('ticketId').focus();
+    }
+
+    async function parkVehicle(e) {
+        e.preventDefault();
+        const payload = {
+            vehicleType: document.getElementById('vehicleType').value,
+            licensePlate: document.getElementById('licensePlate').value,
+            ownerName: document.getElementById('ownerName').value,
+            batteryCapacityKWh: parseFloat(document.getElementById('batteryCapacity').value || 40)
+        };
+
+        const res = await fetch('/api/parking/park', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showAlert(`⚠️ ${data.error}`, 'error');
+        } else {
+            showAlert(
+                `✅ <strong>Vehicle Parked!</strong> Ticket: <strong>${data.ticketId}</strong> | Assigned Nearest Slot: <strong>${data.slot.slotId}</strong> (${data.slot.distanceFromGate}m from gate)`,
+                'success'
+            );
+            document.getElementById('parkForm').reset();
+            toggleBatteryField();
+            loadDashboard();
+        }
+    }
+
+    async function exitVehicle(e) {
+        e.preventDefault();
+        const payload = {
+            ticketId: document.getElementById('ticketId').value,
+            simulatedHours: parseInt(document.getElementById('simulatedHours').value || 0)
+        };
+
+        const res = await fetch('/api/parking/exit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            showAlert(`⚠️ ${data.error}`, 'error');
+        } else {
+            showAlert(
+                `🧾 <strong>Receipt Generated (${data.ticketId})</strong><br>
+                Vehicle: <strong>${data.vehicle.licensePlate}</strong> | Slot Freed: <strong>${data.slot.slotId}</strong> | Total Paid: <strong>₹${data.totalFee.toFixed(2)}</strong>`,
+                'info'
+            );
+            document.getElementById('exitForm').reset();
+            document.getElementById('simulatedHours').value = 2;
+            loadDashboard();
+        }
+    }
+
+    async function runConcurrencyDemo() {
+        const res = await fetch('/api/parking/concurrency-demo', { method: 'POST' });
+        const data = await res.json();
+        showAlert(`⚡ <strong>Multi-Threaded Concurrency Test Complete:</strong><br>${data.logs.join('<br>')}`, 'info');
+        loadDashboard();
+    }
+
+    loadDashboard();
+</script>
+</body>
+</html>
